@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -20,19 +20,26 @@ export default function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState("");
 
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (inputMessage.trim() !== "") {
-      const newMessage: Message = {
-        id: Date.now(),
-        text: inputMessage,
-        sender: "user",
-      };
-      setMessages([...messages, newMessage]);
-      setInputMessage("");
-      // Here you would typically send the message via WebSocket
+  let ws: WebSocket;
+
+  useEffect(() => {
+    ws = new WebSocket("ws://localhost:8080");
+
+    ws.onmessage = (event) => {
+      setMessages(prevMessages => [...prevMessages, event.data.toString()]);
     }
-  };
+
+    return () => {
+      // ws.close();
+    }
+  }, [])
+
+  const sendMessage = () => {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(inputMessage);
+      setInputMessage("")
+    }
+  }
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100 w-screen">
@@ -63,15 +70,16 @@ export default function App() {
           </ScrollArea>
         </CardContent>
         <CardFooter>
-          <form onSubmit={handleSendMessage} className="flex w-full space-x-2">
+          <div className="flex w-full space-x-2">
             <Input
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               placeholder="Type your message..."
               className="flex-grow"
+              onKeyDown={(e) => e.key === "Enter" && sendMessage()}
             />
             <Button type="submit">Send</Button>
-          </form>
+          </div>
         </CardFooter>
       </Card>
     </div>
