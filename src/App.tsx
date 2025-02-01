@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -20,23 +20,24 @@ export default function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState("");
 
-  let ws: WebSocket;
+  const ws = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    ws = new WebSocket("ws://localhost:8080");
+    ws.current = new WebSocket("ws://localhost:8080");
 
-    ws.onmessage = (event) => {
+    ws.current.onmessage = (event) => {
+      console.log( event.data.toString())
       setMessages(prevMessages => [...prevMessages, event.data.toString()]);
     }
 
     return () => {
-      // ws.close();
+      ws.current?.close();
     }
   }, [])
 
   const sendMessage = () => {
-    if (ws.readyState === WebSocket.OPEN) {
-      ws.send(inputMessage);
+    if (ws.current?.readyState === WebSocket.OPEN) {
+      ws.current.send(inputMessage);
       setInputMessage("")
     }
   }
@@ -78,7 +79,7 @@ export default function App() {
               className="flex-grow"
               onKeyDown={(e) => e.key === "Enter" && sendMessage()}
             />
-            <Button type="submit">Send</Button>
+            <Button onClick={sendMessage}>Send</Button>
           </div>
         </CardFooter>
       </Card>
