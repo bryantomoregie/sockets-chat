@@ -11,8 +11,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Message {
-  id: number;
-  text: string;
+  text: any;
   sender: "user" | "other";
 }
 
@@ -26,8 +25,16 @@ export default function App() {
     ws.current = new WebSocket("ws://localhost:8080");
 
     ws.current.onmessage = (event) => {
-      console.log( event.data.toString())
-      setMessages(prevMessages => [...prevMessages, event.data.toString()]);
+      if (event.data instanceof Blob) {
+        const reader = new FileReader();
+
+        reader.onload = () => {
+          setMessages(prevMessages => [...prevMessages, {text: reader.result, sender: "other"}]);
+        };
+
+        reader.readAsText(event.data);
+    } 
+      
     }
 
     return () => {
@@ -38,6 +45,7 @@ export default function App() {
   const sendMessage = () => {
     if (ws.current?.readyState === WebSocket.OPEN) {
       ws.current.send(inputMessage);
+      setMessages([...messages, {text: inputMessage, sender: "user"}])
       setInputMessage("")
     }
   }
@@ -50,9 +58,9 @@ export default function App() {
         </CardHeader>
         <CardContent>
           <ScrollArea className="h-[400px] p-4 rounded-md border">
-            {messages.map((message) => (
+            {messages.map((message, idx) => (
               <div
-                key={message.id}
+                key={idx}
                 className={`mb-4 ${
                   message.sender === "user" ? "text-right" : "text-left"
                 }`}

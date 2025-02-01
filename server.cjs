@@ -5,7 +5,6 @@ server.on("connection", (ws) => {
   console.log("New client connected");
   clients.add(ws);
   ws.on("message", (message) => {
-    console.log("Receieved a message", message);
     clients.forEach((client) => {
       if (client !== ws && client.readyState === WebSocket.OPEN) {
         client.send(message);
